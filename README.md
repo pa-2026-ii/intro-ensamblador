@@ -267,6 +267,19 @@ El registro `rcx` nunca contiene una dirección: es un índice entero. Es `(%rsi
 
 ---
 
+### 6.5 Cómo inspeccionar varios registros a la vez
+
+Terminar el programa con `ret` solo permite ver **un** valor (el de `rax`, como código de salida). Para revisar `rsi`, `rcx` y `rax` al mismo tiempo —por ejemplo, en medio del ciclo del ejemplo anterior— hace falta un depurador (*debugger*):
+
+1. En OnlineGDB, usa el botón **Debug** en lugar de **Run**.
+2. Pon un *breakpoint* haciendo clic junto al número de línea donde quieras detener la ejecución (por ejemplo, en `cmp $4, %rcx`, dentro del ciclo).
+3. Al llegar al breakpoint aparece un panel de **Registers**, con `rax`, `rbx`, `rcx`, `rdx`, `rsi`, `rdi`, etc. mostrados simultáneamente.
+4. Con **Step Over** se avanza instrucción por instrucción, viendo cómo cambian los registros en cada vuelta del ciclo — útil para comparar contra la tabla anterior.
+
+Esto funciona porque OnlineGDB usa **GDB** (*GNU Debugger*) por debajo, que internamente hace algo equivalente al comando `info registers`.
+
+---
+
 ## 7. Llamadas a funciones
 
 ### 7.1 Convención de llamada (System V AMD64, Linux)
