@@ -47,6 +47,31 @@ Cada registro de 64 bits tiene "sub-registros" que representan sus 32, 16 y 8 bi
 
 Un registro no tiene "tipo": el mismo registro puede contener un entero, una dirección de memoria o cualquier patrón de bits.
 
+### 2.1.1 Los sub-registros no se mezclan libremente con `mov`
+
+Cada sub-registro tiene el tamaño que su nombre indica, y eso trae dos restricciones:
+
+* Un literal debe **caber** en el tamaño del destino. `%al` es de 8 bits, así que solo admite valores de 0 a 255:
+
+  ```asm
+  mov $257, %al    # error de ensamblado: 257 no cabe en 8 bits
+  ```
+
+* `mov` exige que **origen y destino tengan el mismo tamaño**. No se puede copiar directamente un registro de 8 bits a uno de 64 bits:
+
+  ```asm
+  mov %al, %rax    # error: tamaños distintos (8 bits vs 64 bits)
+  ```
+
+Para cruzar tamaños a propósito —por ejemplo, tomar solo el byte bajo de un registro grande y ponerlo en uno de 64 bits— existe `movzbq` (*move with zero-extend, byte to quad*), que rellena con ceros los bits que faltan:
+
+```asm
+mov    $257, %rcx     # rcx = 257 (cabe sin problema en 64 bits)
+movzbq %cl, %rax       # rax = byte bajo de rcx extendido con ceros -> rax = 1 (257 mod 256)
+```
+
+Este es el mismo truncamiento a 8 bits que se vio en la sección 7.3 con el código de salida del proceso, pero aquí ocurre explícitamente sobre un registro, al leer solo su sub-registro de 8 bits.
+
 ---
 
 ### 2.2 Movimiento de datos con `mov`
@@ -303,6 +328,31 @@ suma:
 ### 7.2 `ret`
 
 `ret` finaliza la función y retorna el control (y el valor en `rax`) al llamador, análogo al `return` de C.
+
+---
+
+### 7.3 El valor en `rax` frente al código de salida del proceso
+
+Cuando `main` termina con `ret`, el valor de `rax` no llega intacto a la terminal. `rax` es un registro de **64 bits**, pero el código de salida de un proceso en Linux/POSIX **solo tiene 8 bits** (0 a 255), sin importar qué tan grande sea el valor real en el registro.
+
+```asm
+.global main
+main:
+    mov   $257, %rcx
+    mov   %rcx, %rax   # rax = 257
+    ret                # el sistema operativo solo reporta el byte bajo: 257 mod 256 = 1
+```
+
+```
+257 = 0b1_0000_0001
+        ^ ^^^^^^^^
+        |   byte bajo = 1   <- esto es lo que se reporta como código de salida
+        bit 8, se descarta
+```
+
+Este truncamiento ocurre porque el valor de `main` termina pasando por la syscall `exit`, y el sistema operativo solo conserva el byte menos significativo (es la misma razón por la que en una terminal `echo $?` nunca muestra números fuera de 0–255).
+
+Es importante no confundir esto con el **overflow** de la sección 9: aquí `rax` nunca se desborda —257 cabe sin problema en 64 bits— y no se activa la flag `OF`. Es un truncamiento impuesto por la convención del sistema operativo sobre el tamaño del código de salida, no por el tamaño del registro.
 
 ---
 
