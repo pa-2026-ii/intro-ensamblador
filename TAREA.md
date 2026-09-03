@@ -1,29 +1,5 @@
 # Tarea
 
-## Objetivo
-
-Afianzar la comprensión de los **conceptos fundamentales del ensamblador x86-64** (sintaxis AT&T, GCC) y su relación con el modelo real de ejecución de un programa, mediante ejercicios que enfatizan el uso explícito de registros, aritmética, comparaciones, saltos y ciclos.
-
----
-
-## Instrucciones de entrega
-
-La solución de los ejercicios debe presentarse en formato de diapositivas.
-
-Las diapositivas deben:
-
-* Incluir explicaciones claras y concisas de cada ejercicio.
-
-* Incorporar recursos gráficos adecuados (diagramas, esquemas, fragmentos de código comentados) que faciliten la comprensión de los conceptos desarrollados.
-
-* Presentar el código fuente de manera legible, destacando las partes relevantes para la explicación.
-
-* Mantener una estructura ordenada y coherente entre las diferentes secciones.
-
-Todos los programas deben escribirse en **ensamblador x86-64**, ensamblados con **GCC** y sintaxis **AT&T**.
-
----
-
 ## Ejercicio 1 — Registros y aritmética básica
 
 Escriba un programa que:
