@@ -307,6 +307,8 @@ Esto funciona porque OnlineGDB usa **GDB** (*GNU Debugger*) por debajo, que inte
 
 ## 7. Llamadas a funciones
 
+Hasta ahora todos los ejemplos viven dentro de una sola función (`main`). Un programa real casi siempre se divide en varias funciones, y esas funciones necesitan un **acuerdo común** sobre en qué registro va cada argumento y en cuál se deja el resultado — sin eso, ninguna función podría llamar a otra de forma confiable (ni siquiera a una compilada por separado, como una función de biblioteca). Esta sección describe ese acuerdo y cómo usarlo para definir y llamar una función propia.
+
 ### 7.1 Convención de llamada (System V AMD64, Linux)
 
 Los primeros seis argumentos enteros se pasan en registros, en este orden:
@@ -315,23 +317,56 @@ Los primeros seis argumentos enteros se pasan en registros, en este orden:
 rdi, rsi, rdx, rcx, r8, r9
 ```
 
-El valor de retorno se deja en `rax`.
+El valor de retorno se deja en `rax`. Por ejemplo, una función que suma sus dos argumentos:
 
 ```asm
-.global suma
 suma:
     mov   %rdi, %rax   # rax = primer argumento
     add   %rsi, %rax   # rax += segundo argumento
     ret
 ```
 
-### 7.2 `ret`
+---
+
+### 7.2 Ejemplo paso a paso: definir y llamar una función
+
+El fragmento anterior define `suma`, pero por sí solo no hace nada visible: nadie la llama. Para probarla hace falta un `main` que la invoque con `call`, pasándole argumentos concretos en `rdi` y `rsi`:
+
+```asm
+.text
+.global main
+
+suma:
+    mov   %rdi, %rax   # rax = primer argumento
+    add   %rsi, %rax   # rax += segundo argumento
+    ret
+
+main:
+    mov   $7, %rdi      # primer argumento de suma
+    mov   $35, %rsi     # segundo argumento de suma
+    call  suma           # rax = suma(7, 35)
+    ret                   # exit code = rax = 42
+```
+
+Paso a paso:
+
+1. Antes de llamar a `suma`, `main` coloca los argumentos en los registros que exige la convención: `7` en `rdi`, `35` en `rsi`.
+2. `call suma` guarda en la pila la dirección de la instrucción siguiente (para saber a dónde volver) y salta a la etiqueta `suma` — es el análogo en ensamblador de invocar `suma(7, 35)` en C.
+3. Dentro de `suma`, `rdi` y `rsi` ya traen los argumentos, así que el cuerpo de la función es el mismo fragmento de la sección 7.1: calcula `rax = rdi + rsi = 42`.
+4. El `ret` de `suma` saca de la pila la dirección guardada por `call` y regresa la ejecución justo después del `call`, dentro de `main` — con `rax` todavía en 42.
+5. El `ret` de `main` usa ese mismo `rax` como código de salida del programa: `42`.
+
+Prueba este ejemplo en OnlineGDB (sección 6.5) y pon un *breakpoint* justo en el `call suma` para ver, en el panel de Registers, cómo `rdi` y `rsi` ya tienen 7 y 35 antes de saltar — y cómo `rax` cambia a 42 apenas se ejecuta el `ret` de `suma`.
+
+---
+
+### 7.3 `ret`
 
 `ret` finaliza la función y retorna el control (y el valor en `rax`) al llamador, análogo al `return` de C.
 
 ---
 
-### 7.3 El valor en `rax` frente al código de salida del proceso
+### 7.4 El valor en `rax` frente al código de salida del proceso
 
 Cuando `main` termina con `ret`, el valor de `rax` no llega intacto a la terminal. `rax` es un registro de **64 bits**, pero el código de salida de un proceso en Linux/POSIX **solo tiene 8 bits** (0 a 255), sin importar qué tan grande sea el valor real en el registro.
 
